@@ -135,22 +135,47 @@ jobs:
           cd ./publish/${{ matrix.kind }}
           tar -czvf ../../SharpIco-${{ matrix.kind }}-${{ steps.get_version.outputs.VERSION }}${{ matrix.extension }} *
       
-      # 为macOS平台添加创建GitHub Release的步骤
-      - name: 创建GitHub Release
-        if: matrix.kind == 'macOS'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref }}
-          name: 版本 ${{ steps.get_version.outputs.VERSION }}
-          draft: false
-          generate_release_notes: true
+      # 根据平台添加不同的等待时间，错开上传时间
+      - name: 等待 - 错开上传时间
+        shell: bash
+        run: |
+          if [ "${{ matrix.kind }}" == "windows" ]; then
+            echo "Windows平台无需等待"
+          elif [ "${{ matrix.kind }}" == "linux" ]; then
+            echo "Linux平台等待15秒..."
+            sleep 15
+          elif [ "${{ matrix.kind }}" == "macOS" ]; then
+            echo "macOS平台等待30秒..."
+            sleep 30
+          fi
       
-      # 所有平台都上传可执行文件到GitHub Release
+      # 所有平台都上传可执行文件到GitHub Release（无需创建Release）
       - name: 上传可执行文件到GitHub Release
+        id: upload_release
         uses: softprops/action-gh-release@v1
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: ./SharpIco-${{ matrix.kind }}-${{ steps.get_version.outputs.VERSION }}${{ matrix.extension }}
           tag_name: ${{ github.ref }}
           fail_on_unmatched_files: false
           draft: false
-          replace_artifacts: true 
+          replace_artifacts: true
+          make_latest: true
+          prerelease: false
+          
+      # 如果第一次上传失败，等待几秒后重试
+      - name: 重试上传（如果失败）
+        if: steps.upload_release.outcome == 'failure'
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: ./SharpIco-${{ matrix.kind }}-${{ steps.get_version.outputs.VERSION }}${{ matrix.extension }}
+          tag_name: ${{ github.ref }}
+          fail_on_unmatched_files: false
+          draft: false
+          replace_artifacts: true
+          make_latest: true
+          prerelease: false 
