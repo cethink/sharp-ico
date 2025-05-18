@@ -1,9 +1,6 @@
 # SharpIco
 
-<div style="display: flex; justify-content: center; align-items: center; gap: 1.25rem;">
-  <img src="docs/images/logo.png" alt="SharpIco Logo" width="100" height="100" />
-  <h1>SharpIco</h1>
-</div>
+<img src="docs/images/logo.png" alt="SharpIco Logo" width="200" height="200" />
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![.NET](https://img.shields.io/badge/.NET-9.0-purple)
@@ -29,7 +26,7 @@ SharpIco是一个纯 C# AOT 实现的轻量级图标生成工具，用于生成�
 ### 从源码构建
 
 ```bash
-git clone https://github.com/yourusername/SharpIco.git
+git clone https://github.com/star-plan/sharp-ico.git
 cd SharpIco
 dotnet build -c Release
 ```
