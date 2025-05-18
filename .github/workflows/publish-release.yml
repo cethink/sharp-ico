@@ -54,15 +54,6 @@ jobs:
         
       - name: 发布到NuGet Gallery
         run: dotnet nuget push ./nupkg/*.nupkg --api-key ${{ secrets.NUGET_GALLERY_TOKEN }} --source https://api.nuget.org/v3/index.json --skip-duplicate
-      
-      - name: 创建GitHub发布版本
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ./nupkg/*.nupkg
-          tag_name: ${{ github.ref }}
-          name: 版本 ${{ steps.get_version.outputs.VERSION }}
-          draft: false
-          generate_release_notes: true
 
   # 第二步：发布可执行文件
   publish-executables:
@@ -144,6 +135,17 @@ jobs:
           cd ./publish/${{ matrix.kind }}
           tar -czvf ../../SharpIco-${{ matrix.kind }}-${{ steps.get_version.outputs.VERSION }}${{ matrix.extension }} *
       
+      # 为macOS平台添加创建GitHub Release的步骤
+      - name: 创建GitHub Release
+        if: matrix.kind == 'macOS'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          name: 版本 ${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          generate_release_notes: true
+      
+      # 所有平台都上传可执行文件到GitHub Release
       - name: 上传可执行文件到GitHub Release
         uses: softprops/action-gh-release@v1
         with:
