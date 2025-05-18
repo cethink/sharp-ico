@@ -22,7 +22,7 @@
         <PackageProjectUrl>https://github.com/star-plan/sharp-ico</PackageProjectUrl>
         <RepositoryUrl>https://github.com/star-plan/sharp-ico</RepositoryUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <PackageReadmeFile>../README.md</PackageReadmeFile>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <!-- AOT发布专用设置 -->
