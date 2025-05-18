@@ -22,12 +22,6 @@ jobs:
         with:
           fetch-depth: 0  # 获取所有历史记录用于版本号计算
       
-      - name: 显示工作目录结构
-        run: |
-          pwd
-          ls -la
-          find . -type f -name "*.csproj" | sort
-      
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
@@ -46,70 +40,25 @@ jobs:
         shell: bash
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
       
-      - name: 创建可能缺失的目录
-        run: |
-          # 确保在SharpIco目录下创建.github/workflows目录
-          mkdir -p ./SharpIco/.github/workflows
-          # 显示项目文件内容用于调试
-          CSPROJ_FILE=$(find . -type f -name "*.csproj" | head -1)
-          echo "项目文件内容:"
-          cat "$CSPROJ_FILE"
-      
       - name: 恢复依赖
-        run: |
-          # 使用找到的第一个csproj文件
-          CSPROJ_FILE=$(find . -type f -name "*.csproj" | head -1)
-          echo "找到项目文件: $CSPROJ_FILE"
-          dotnet restore "$CSPROJ_FILE" --verbosity detailed
+        run: dotnet restore ./SharpIco/SharpIco.csproj
       
       - name: 运行测试
         run: dotnet test --no-restore
 
       - name: 构建项目
-        run: |
-          CSPROJ_FILE=$(find . -type f -name "*.csproj" | head -1)
-          dotnet build --no-restore -c Release --nologo "$CSPROJ_FILE" -p:Version=${{ steps.get_version.outputs.VERSION }}
+        run: dotnet build --no-restore -c Release --nologo ./SharpIco/SharpIco.csproj -p:Version=${{ steps.get_version.outputs.VERSION }}
       
       - name: 创建NuGet包
-        run: |
-          CSPROJ_FILE=$(find . -type f -name "*.csproj" | head -1)
-          # 使用临时目录作为工作目录
-          TEMP_DIR=$(mktemp -d)
-          mkdir -p "$TEMP_DIR/nupkg"
-          
-          # 尝试使用不同的打包方式
-          dotnet pack -c Release "$CSPROJ_FILE" -p:PackageVersion=${{ steps.get_version.outputs.VERSION }} --no-build --output "$TEMP_DIR/nupkg" -p:PackageOutputPath="$TEMP_DIR/nupkg" --verbosity detailed
-          
-          # 复制生成的包文件到工作区
-          mkdir -p ./nupkg
-          cp -v "$TEMP_DIR/nupkg"/*.nupkg ./nupkg/ || echo "打包可能失败，但尝试继续"
-          
-          # 显示所有生成的文件
-          echo "打包后的文件:"
-          find "$TEMP_DIR" -type f -name "*.nupkg" | sort
-          find . -type f -name "*.nupkg" | sort
+        run: dotnet pack -c Release ./SharpIco/SharpIco.csproj -p:PackageVersion=${{ steps.get_version.outputs.VERSION }} --no-build --output ./nupkg
         
       - name: 发布到NuGet Gallery
-        run: |
-          if [ -f ./nupkg/*.nupkg ]; then
-            dotnet nuget push ./nupkg/*.nupkg --api-key ${{ secrets.NUGET_GALLERY_TOKEN }} --source https://api.nuget.org/v3/index.json --skip-duplicate
-          else
-            echo "没有找到NuGet包，尝试搜索所有可能的位置"
-            find . -type f -name "*.nupkg" | sort
-            NUPKG_FILE=$(find . -type f -name "*.nupkg" | head -1)
-            if [ -n "$NUPKG_FILE" ]; then
-              echo "找到包文件: $NUPKG_FILE"
-              dotnet nuget push "$NUPKG_FILE" --api-key ${{ secrets.NUGET_GALLERY_TOKEN }} --source https://api.nuget.org/v3/index.json --skip-duplicate
-            else
-              echo "未找到任何NuGet包，发布步骤失败"
-              exit 1
-            fi
-          fi
+        run: dotnet nuget push ./nupkg/*.nupkg --api-key ${{ secrets.NUGET_GALLERY_TOKEN }} --source https://api.nuget.org/v3/index.json --skip-duplicate
       
       - name: 创建GitHub发布版本
         uses: softprops/action-gh-release@v1
         with:
-          files: $(find . -type f -name "*.nupkg")
+          files: ./nupkg/*.nupkg
           tag_name: ${{ github.ref }}
           name: 版本 ${{ steps.get_version.outputs.VERSION }}
           draft: false
