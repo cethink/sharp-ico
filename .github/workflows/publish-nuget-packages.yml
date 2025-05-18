@@ -7,7 +7,7 @@ run-name: ${{ github.actor }} 正在发布NuGet包 🚀
 on:
   push:
     tags:
-      - 'v*'  # 只在推送版本标签时触发
+      - "v*.*.*"  # 更明确的版本格式匹配
 
 jobs:
   publish-nuget-packages:
