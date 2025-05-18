@@ -55,8 +55,8 @@ jobs:
       - name: 发布到NuGet Gallery
         run: dotnet nuget push ./nupkg/*.nupkg --api-key ${{ secrets.NUGET_GALLERY_TOKEN }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
-  # 第二步：发布可执行文件
-  publish-executables:
+  # 第二步：编译各平台可执行文件
+  build-executables:
     needs: publish-nuget  # 确保在NuGet包发布后运行
     strategy:
       fail-fast: false
@@ -135,47 +135,57 @@ jobs:
           cd ./publish/${{ matrix.kind }}
           tar -czvf ../../SharpIco-${{ matrix.kind }}-${{ steps.get_version.outputs.VERSION }}${{ matrix.extension }} *
       
-      # 根据平台添加不同的等待时间，错开上传时间
-      - name: 等待 - 错开上传时间
+      # 上传构建产物作为工作流构件(artifacts)
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v3
+        with:
+          name: SharpIco-${{ matrix.kind }}-${{ steps.get_version.outputs.VERSION }}
+          path: ./SharpIco-${{ matrix.kind }}-${{ steps.get_version.outputs.VERSION }}${{ matrix.extension }}
+          retention-days: 1
+
+  # 第三步：统一上传所有平台可执行文件到GitHub Release
+  upload-to-release:
+    needs: build-executables
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 提取版本号
+        id: get_version
         shell: bash
-        run: |
-          if [ "${{ matrix.kind }}" == "windows" ]; then
-            echo "Windows平台无需等待"
-          elif [ "${{ matrix.kind }}" == "linux" ]; then
-            echo "Linux平台等待15秒..."
-            sleep 15
-          elif [ "${{ matrix.kind }}" == "macOS" ]; then
-            echo "macOS平台等待30秒..."
-            sleep 30
-          fi
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
       
-      # 所有平台都上传可执行文件到GitHub Release（无需创建Release）
-      - name: 上传可执行文件到GitHub Release
-        id: upload_release
+      # 下载所有平台构建产物
+      - name: 下载Windows构建产物
+        uses: actions/download-artifact@v3
+        with:
+          name: SharpIco-windows-${{ steps.get_version.outputs.VERSION }}
+          path: ./artifacts
+      
+      - name: 下载Linux构建产物
+        uses: actions/download-artifact@v3
+        with:
+          name: SharpIco-linux-${{ steps.get_version.outputs.VERSION }}
+          path: ./artifacts
+      
+      - name: 下载macOS构建产物
+        uses: actions/download-artifact@v3
+        with:
+          name: SharpIco-macOS-${{ steps.get_version.outputs.VERSION }}
+          path: ./artifacts
+      
+      # 列出下载的文件以确认
+      - name: 列出下载的文件
+        run: ls -la ./artifacts
+      
+      # 统一上传到GitHub Release
+      - name: 上传所有文件到GitHub Release
         uses: softprops/action-gh-release@v1
-        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: ./SharpIco-${{ matrix.kind }}-${{ steps.get_version.outputs.VERSION }}${{ matrix.extension }}
+          files: ./artifacts/*
           tag_name: ${{ github.ref }}
           fail_on_unmatched_files: false
           draft: false
-          replace_artifacts: true
-          make_latest: true
-          prerelease: false
-          
-      # 如果第一次上传失败，等待几秒后重试
-      - name: 重试上传（如果失败）
-        if: steps.upload_release.outcome == 'failure'
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          files: ./SharpIco-${{ matrix.kind }}-${{ steps.get_version.outputs.VERSION }}${{ matrix.extension }}
-          tag_name: ${{ github.ref }}
-          fail_on_unmatched_files: false
-          draft: false
-          replace_artifacts: true
-          make_latest: true
-          prerelease: false 
+          name: SharpIco 版本 ${{ steps.get_version.outputs.VERSION }}
+          generate_release_notes: true 
