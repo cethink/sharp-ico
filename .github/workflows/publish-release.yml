@@ -1,5 +1,5 @@
-name: 发布可执行文件
-run-name: ${{ github.actor }} 正在发布可执行文件 🚀
+name: 发布SharpIco
+run-name: ${{ github.actor }} 正在发布SharpIco 🚀
 
 on:
   push:
@@ -9,11 +9,65 @@ on:
 # 为整个工作流设置权限
 permissions:
   contents: write
+  id-token: write
+  issues: write
 
 jobs:
+  # 第一步：发布NuGet包
+  publish-nuget:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # 获取所有历史记录用于版本号计算
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 9.0.x
+      
+      - name: 缓存NuGet包
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+      
+      - name: 提取版本号
+        id: get_version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: 恢复依赖
+        run: dotnet restore ./SharpIco/SharpIco.csproj
+      
+      - name: 运行测试
+        run: dotnet test --no-restore
+
+      - name: 构建项目
+        run: dotnet build --no-restore -c Release --nologo ./SharpIco/SharpIco.csproj -p:Version=${{ steps.get_version.outputs.VERSION }}
+      
+      - name: 创建NuGet包
+        run: dotnet pack -c Release ./SharpIco/SharpIco.csproj -p:PackageVersion=${{ steps.get_version.outputs.VERSION }} --no-build --output ./nupkg
+        
+      - name: 发布到NuGet Gallery
+        run: dotnet nuget push ./nupkg/*.nupkg --api-key ${{ secrets.NUGET_GALLERY_TOKEN }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      
+      - name: 创建GitHub发布版本
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./nupkg/*.nupkg
+          tag_name: ${{ github.ref }}
+          name: 版本 ${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          generate_release_notes: true
+
+  # 第二步：发布可执行文件
   publish-executables:
+    needs: publish-nuget  # 确保在NuGet包发布后运行
     strategy:
-      # 允许其他作业继续运行，即使某个作业失败
       fail-fast: false
       matrix:
         kind: ['windows', 'linux', 'macOS']
@@ -32,8 +86,6 @@ jobs:
             extension: '.tar.gz'
 
     runs-on: ${{ matrix.os }}
-    permissions:
-      contents: write
     
     steps:
       - uses: actions/checkout@v3
@@ -92,10 +144,6 @@ jobs:
           cd ./publish/${{ matrix.kind }}
           tar -czvf ../../SharpIco-${{ matrix.kind }}-${{ steps.get_version.outputs.VERSION }}${{ matrix.extension }} *
       
-      - name: 等待Release创建 (30秒)
-        shell: bash
-        run: sleep 30
-      
       - name: 上传可执行文件到GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -103,7 +151,4 @@ jobs:
           tag_name: ${{ github.ref }}
           fail_on_unmatched_files: false
           draft: false
-          token: ${{ secrets.GITHUB_TOKEN }}
-          replace_artifacts: true
-          append_body: true
-          update_only: true # 仅更新现有Release，不尝试创建新Release 
+          replace_artifacts: true 
