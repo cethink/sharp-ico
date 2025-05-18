@@ -37,10 +37,25 @@ jobs:
         with:
           fetch-depth: 0  # 获取所有历史记录用于版本号计算
       
+      - name: 显示工作目录结构
+        shell: bash
+        run: |
+          pwd
+          ls -la
+          find . -type f -name "*.csproj" | sort
+      
       - name: 提取版本号
         id: get_version
         shell: bash
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: 设置项目路径
+        id: set_paths
+        shell: bash
+        run: |
+          CSPROJ_FILE=$(find . -type f -name "*.csproj" | head -1)
+          echo "找到项目文件: $CSPROJ_FILE"
+          echo "PROJECT_FILE=$CSPROJ_FILE" >> $GITHUB_OUTPUT
       
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
@@ -62,10 +77,10 @@ jobs:
           sudo apt-get install -y clang zlib1g-dev
       
       - name: 恢复依赖
-        run: dotnet restore ./SharpIco/SharpIco.csproj
+        run: dotnet restore "${{ steps.set_paths.outputs.PROJECT_FILE }}"
       
       - name: AOT编译
-        run: dotnet publish ./SharpIco/SharpIco.csproj -c Release -r ${{ matrix.target }} --self-contained true -p:PublishAot=true -p:Version=${{ steps.get_version.outputs.VERSION }} -o ./publish/${{ matrix.kind }}
+        run: dotnet publish "${{ steps.set_paths.outputs.PROJECT_FILE }}" -c Release -r ${{ matrix.target }} --self-contained true -p:PublishAot=true -p:Version=${{ steps.get_version.outputs.VERSION }} -o ./publish/${{ matrix.kind }}
       
       - name: 打包Windows可执行文件
         if: matrix.kind == 'windows'

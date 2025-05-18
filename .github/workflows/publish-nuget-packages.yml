@@ -22,6 +22,12 @@ jobs:
         with:
           fetch-depth: 0  # 获取所有历史记录用于版本号计算
       
+      - name: 显示工作目录结构
+        run: |
+          pwd
+          ls -la
+          find . -type f -name "*.csproj" | sort
+      
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
@@ -41,16 +47,24 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
       
       - name: 恢复依赖
-        run: dotnet restore ./SharpIco/SharpIco.csproj
+        run: |
+          # 使用找到的第一个csproj文件
+          CSPROJ_FILE=$(find . -type f -name "*.csproj" | head -1)
+          echo "找到项目文件: $CSPROJ_FILE"
+          dotnet restore "$CSPROJ_FILE"
       
       - name: 运行测试
         run: dotnet test --no-restore
 
       - name: 构建项目
-        run: dotnet build --no-restore -c Release --nologo ./SharpIco/SharpIco.csproj -p:Version=${{ steps.get_version.outputs.VERSION }}
+        run: |
+          CSPROJ_FILE=$(find . -type f -name "*.csproj" | head -1)
+          dotnet build --no-restore -c Release --nologo "$CSPROJ_FILE" -p:Version=${{ steps.get_version.outputs.VERSION }}
       
       - name: 创建NuGet包
-        run: dotnet pack -c Release ./SharpIco/SharpIco.csproj -p:PackageVersion=${{ steps.get_version.outputs.VERSION }} --no-build --output ./nupkg
+        run: |
+          CSPROJ_FILE=$(find . -type f -name "*.csproj" | head -1)
+          dotnet pack -c Release "$CSPROJ_FILE" -p:PackageVersion=${{ steps.get_version.outputs.VERSION }} --no-build --output ./nupkg
         
       - name: 发布到NuGet Gallery
         run: dotnet nuget push ./nupkg/*.nupkg --api-key ${{ secrets.NUGET_GALLERY_TOKEN }} --source https://api.nuget.org/v3/index.json --skip-duplicate
