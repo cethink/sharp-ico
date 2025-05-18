@@ -23,7 +23,7 @@ outputOption.IsRequired = true;
 var sizesOption = new Option<int[]>(
     new[] { "--sizes", "-s" },
     description: "图标尺寸列表，以逗号分隔",
-    getDefaultValue: () => new[] { 16, 32, 48, 64, 128, 256, 512, 1024 }
+    getDefaultValue: () => new[] { 16, 32, 48, 64, 128, 256, 512 }
 );
 sizesOption.AllowMultipleArgumentsPerToken = true;
 

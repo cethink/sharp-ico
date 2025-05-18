@@ -23,6 +23,16 @@ SharpIco是一个纯 C# AOT 实现的轻量级图标生成工具，用于生成�
 
 ## 📦 安装
 
+### 使用 Scoop 安装 (Windows)
+
+```bash
+# 添加自定义 bucket
+scoop bucket add sharp-ico https://github.com/star-plan/sharp-ico-bucket
+
+# 安装 SharpIco
+scoop install sharp-ico
+```
+
 ### 作为 .NET Global Tool 安装
 
 ```bash
@@ -37,12 +47,6 @@ cd SharpIco
 dotnet build -c Release
 ```
 
-### 发布为独立应用程序
-
-```bash
-dotnet publish -c Release -r win-x64 --self-contained
-```
-
 ## 🚀 使用方法
 
 ### 生成ICO图标
@@ -54,6 +58,7 @@ sharpico generate -i input.png -o output.ico
 可选参数:
 - `-s, --sizes`: 指定图标尺寸，默认为 16,32,48,64,128,256,512,1024
   
+
 示例:
 ```bash
 sharpico generate -i input.png -o output.ico -s 16,32,64,128
@@ -134,22 +139,123 @@ MIT License
 dotnet build
 ```
 
-### 打包为 NuGet 包
+### 发布模式
 
+SharpIco 支持两种发布模式：
+
+#### AOT 发布 (原生性能，无需 .NET 运行时)
+
+```bash
+dotnet publish -r win-x64 -c release /p:PublishAot=true /p:TrimMode=full /p:InvariantGlobalization=true /p:IlcGenerateStackTraceData=false /p:IlcOptimizationPreference=Size /p:IlcFoldIdenticalMethodBodies=true /p:JsonSerializerIsReflectionEnabledByDefault=true
+```
+
+支持的平台:
+
+- Windows: win-x64
+- macOS: osx-x64, osx-arm64
+- Linux: linux-x64, linux-arm64
+
+#### Framework Dependent 发布 (需要 .NET 运行时)
+
+```bash
+# 发布为 NuGet 包 (.NET Tool)
+dotnet pack
+
+# 安装本地打包的工具
+dotnet tool install --global --add-source ./SharpIco/nupkg SharpIco
+```
+
+### 创建 Scoop 安装包
+
+- 编译 AOT 版本并创建 zip 文件
+- 在 GitHub Releases 中发布 AOT 编译的 zip 包
+- 计算 zip 文件的 SHA256 哈希值
+- 更新 `bucket/sharp-ico.json` 中的版本号和哈希值
+
+sharp-ico.json 内容示例
+
+```json
+{
+    "version": "1.0.0",
+    "description": "轻量级ICO图标生成和检查工具",
+    "homepage": "https://github.com/star-plan/sharp-ico",
+    "license": "MIT",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/star-plan/sharp-ico/releases/download/v1.0.0/sharpico-win-x64.zip",
+            "hash": "SHA256哈希值，发布后填写"
+        }
+    },
+    "bin": "sharpico.exe",
+    "checkver": "github",
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/star-plan/sharp-ico/releases/download/v$version/sharpico-win-x64.zip"
+            }
+        }
+    }
+}
+```
+
+使用此方法，您的用户可以通过以下简单步骤安装您的工具：
+
+```bash
+scoop bucket add sharp-ico https://github.com/star-plan/sharp-ico
+scoop install sharp-ico
+```
+
+当您发布新版本时，用户只需运行 `scoop update sharp-ico` 即可获取最新版本。
+
+
+### 两种发布流程
+
+#### AOT 发布流程 (Scoop/独立应用)
+
+1. 编译 AOT 版本:
+```bash
+dotnet publish -r win-x64 -c release /p:PublishAot=true /p:TrimMode=full /p:InvariantGlobalization=true /p:IlcGenerateStackTraceData=false /p:IlcOptimizationPreference=Size /p:IlcFoldIdenticalMethodBodies=true /p:JsonSerializerIsReflectionEnabledByDefault=true
+```
+
+2. 打包生成的文件:
+```bash
+# 进入发布目录
+cd SharpIco/bin/release/net9.0/win-x64/publish/
+# 创建 zip 包
+powershell Compress-Archive -Path * -DestinationPath sharpico-win-x64.zip
+```
+
+3. 将生成的 zip 文件上传到 GitHub Releases
+
+#### .NET Tool 发布流程
+
+1. 打包为 NuGet 包:
 ```bash
 dotnet pack
 ```
 
-生成的包将位于 `./SharpIco/nupkg` 目录中。
+2. 生成的包将位于 `./SharpIco/nupkg` 目录中
 
-### 本地安装 (开发测试)
-
+3. 发布到 NuGet:
 ```bash
-dotnet tool install --global --add-source ./SharpIco/nupkg SharpIco
+dotnet nuget push ./SharpIco/nupkg/SharpIco.1.0.0.nupkg --api-key 您的API密钥 --source https://api.nuget.org/v3/index.json
 ```
 
-### 卸载工具
+### 本地测试
+
+#### 测试 .NET Tool
 
 ```bash
+# 安装本地打包的工具
+dotnet tool install --global --add-source ./SharpIco/nupkg SharpIco
+
+# 卸载工具
 dotnet tool uninstall --global SharpIco
+```
+
+#### 测试 AOT 发布版本
+
+直接运行生成的可执行文件:
+```bash
+./SharpIco/bin/release/net9.0/win-x64/publish/sharpico.exe
 ```
