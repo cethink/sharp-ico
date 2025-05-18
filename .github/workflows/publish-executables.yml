@@ -104,4 +104,6 @@ jobs:
           fail_on_unmatched_files: false
           draft: false
           token: ${{ secrets.GITHUB_TOKEN }}
-          replace_artifacts: true 
+          replace_artifacts: true
+          append_body: true
+          update_only: true # 仅更新现有Release，不尝试创建新Release 
