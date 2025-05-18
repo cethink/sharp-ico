@@ -6,9 +6,15 @@ on:
     tags:
       - "v*.*.*"  # 更明确的版本格式匹配
 
+# 为整个工作流设置权限
+permissions:
+  contents: write
+
 jobs:
   publish-executables:
     strategy:
+      # 允许其他作业继续运行，即使某个作业失败
+      fail-fast: false
       matrix:
         kind: ['windows', 'linux', 'macOS']
         include:
@@ -28,9 +34,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
-    
-    # 确保在NuGet包工作流完成后运行
-    needs: check-nuget-workflow
     
     steps:
       - uses: actions/checkout@v3
@@ -59,13 +62,23 @@ jobs:
         if: matrix.kind == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang zlib1g-dev
+          sudo apt-get install -y clang zlib1g-dev libkrb5-dev
+
+      - name: 设置Windows环境
+        if: matrix.kind == 'windows'
+        shell: pwsh
+        run: |
+          Write-Host "设置Windows编译环境..."
+          # 确保有最新的开发者工具
+          choco install visualstudio2022buildtools -y --no-progress
       
       - name: 恢复依赖
         run: dotnet restore ./SharpIco/SharpIco.csproj
       
       - name: AOT编译
-        run: dotnet publish ./SharpIco/SharpIco.csproj -c Release -r ${{ matrix.target }} --self-contained true -p:PublishAot=true -p:Version=${{ steps.get_version.outputs.VERSION }} -o ./publish/${{ matrix.kind }}
+        run: |
+          echo "正在为 ${{ matrix.kind }} 平台进行AOT编译..."
+          dotnet publish ./SharpIco/SharpIco.csproj -c Release -r ${{ matrix.target }} --self-contained true -p:PublishAot=true -p:Version=${{ steps.get_version.outputs.VERSION }} -o ./publish/${{ matrix.kind }}
       
       - name: 打包Windows可执行文件
         if: matrix.kind == 'windows'
@@ -79,21 +92,16 @@ jobs:
           cd ./publish/${{ matrix.kind }}
           tar -czvf ../../SharpIco-${{ matrix.kind }}-${{ steps.get_version.outputs.VERSION }}${{ matrix.extension }} *
       
+      - name: 等待Release创建 (30秒)
+        shell: bash
+        run: sleep 30
+      
       - name: 上传可执行文件到GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: ./SharpIco-${{ matrix.kind }}-${{ steps.get_version.outputs.VERSION }}${{ matrix.extension }}
           tag_name: ${{ github.ref }}
-          name: 版本 ${{ steps.get_version.outputs.VERSION }}
-          append_body: true
+          fail_on_unmatched_files: false
           draft: false
-          
-  # 添加检查工作流作为依赖
-  check-nuget-workflow:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: 等待NuGet包工作流
-        run: |
-          echo "等待NuGet包工作流完成..."
-          sleep 30  # 给NuGet工作流一些启动时间 
+          token: ${{ secrets.GITHUB_TOKEN }}
+          replace_artifacts: true 
