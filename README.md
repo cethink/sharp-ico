@@ -1,9 +1,21 @@
 # SharpIco
 
+<div style="display: flex; justify-content: center; align-items: center; gap: 1.25rem;">
+  <img src="docs/images/logo.png" alt="SharpIco Logo" width="100" height="100" />
+  <h1>SharpIco</h1>
+</div>
+
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![.NET](https://img.shields.io/badge/.NET-9.0-purple)
 
-SharpIco是一个高效的.NET命令行工具，用于生成和检查ICO图标文件。通过SharpIco，您可以轻松将PNG图像转换为包含多种尺寸的ICO图标，也可以检查ICO文件的内部结构。
+SharpIco是一个纯 C# AOT 实现的轻量级图标生成工具，用于生成和检查ICO图标文件。可将一张高分辨率 PNG 图片一键生成标准的 Windows .ico 图标文件，内含多种尺寸（16x16 到 512x512），还可以自定义尺寸。
+
+通过SharpIco，您可以轻松将PNG图像转换为包含多种尺寸的ICO图标，完全摆脱命令行依赖，无需 ImageMagick、Node.js 或 Python，适合在 .NET 项目中内嵌、分发或集成自动打包流程中使用。
+
+除了图标生成，SharpIco 还内置图标结构分析功能，助你轻松验证 .ico 文件中包含的图层与尺寸。
+
+🚀 跨平台、零依赖、极速生成，一切尽在 SharpIco！
+
 
 ## ✨ 功能特点
 
