@@ -16,7 +16,7 @@ public static class IcoInspector {
 
         // 存储所有图像条目
         var imageEntries = new List<ImageEntry>();
-        
+
         // 读取所有图像条目信息
         for (int i = 0; i < count; i++) {
             byte width = reader.ReadByte();
@@ -37,57 +37,64 @@ public static class IcoInspector {
                 ImageOffset = imageOffset
             });
         }
-        
+
         // 排序条目，确保按照偏移量顺序处理
         imageEntries = imageEntries.OrderBy(e => e.ImageOffset).ToList();
-        
+
         // 读取并解析每个图像的数据
         for (int i = 0; i < imageEntries.Count; i++) {
             var entry = imageEntries[i];
-            
+
             // 保存当前位置
             long currentPosition = fs.Position;
-            
+
             // 跳转到图像数据位置
             fs.Seek(entry.ImageOffset, SeekOrigin.Begin);
-            
+
             // 确定图像数据大小
             int dataSize = entry.SizeInBytes;
             byte[] imageData = new byte[dataSize];
-            
-            // 读取图像数据
-            fs.Read(imageData, 0, dataSize);
-            
+
+            // 读取图像数据 - 确保读取全部字节
+            int bytesRead = 0;
+            int bytesRemaining = dataSize;
+            while (bytesRemaining > 0) {
+                int n = fs.Read(imageData, bytesRead, bytesRemaining);
+                if (n == 0) break; // 没有更多数据可读
+                bytesRead += n;
+                bytesRemaining -= n;
+            }
+
             // 使用ImageSharp解析图像数据获取真实尺寸
             (int actualWidth, int actualHeight) = GetImageDimensions(imageData);
-            
+
             // 恢复文件读取位置
             fs.Seek(currentPosition, SeekOrigin.Begin);
-            
+
             // 更新图像条目的实际尺寸
             entry.ActualWidth = actualWidth;
             entry.ActualHeight = actualHeight;
         }
-        
+
         // 输出图像信息
         DisplayImageInfo(imageEntries);
     }
-    
+
     private static (int width, int height) GetImageDimensions(byte[] imageData) {
         try {
             // PNG图像以字节序列89 50 4E 47 0D 0A 1A 0A开头
-            bool isPng = imageData.Length > 8 && 
-                         imageData[0] == 0x89 && 
-                         imageData[1] == 0x50 && 
-                         imageData[2] == 0x4E && 
+            bool isPng = imageData.Length > 8 &&
+                         imageData[0] == 0x89 &&
+                         imageData[1] == 0x50 &&
+                         imageData[2] == 0x4E &&
                          imageData[3] == 0x47;
-                         
+
             if (isPng) {
                 using var ms = new MemoryStream(imageData);
                 using var image = Image.Load(ms);
                 return (image.Width, image.Height);
             }
-            
+
             // 对于不是PNG格式的，尝试通过通用方法读取
             using var ms2 = new MemoryStream(imageData);
             try {
@@ -104,24 +111,24 @@ public static class IcoInspector {
             return (0, 0);
         }
     }
-    
+
     private static void DisplayImageInfo(List<ImageEntry> entries) {
         // 按索引排序，保持原始顺序
         var sortedEntries = entries.OrderBy(e => e.Index).ToList();
-        
+
         foreach (var entry in sortedEntries) {
             // 文件头中的尺寸信息
             int headerWidth = entry.Width == 0 ? 256 : entry.Width;
             int headerHeight = entry.Height == 0 ? 256 : entry.Height;
-            
+
             // 实际图像尺寸
             int actualWidth = entry.ActualWidth > 0 ? entry.ActualWidth : headerWidth;
             int actualHeight = entry.ActualHeight > 0 ? entry.ActualHeight : headerHeight;
-            
+
             // 显示信息
             Console.WriteLine(
                 $"- 第{entry.Index + 1}张图像: {actualWidth}x{actualHeight}, {entry.BitCount}bpp, 大小: {entry.SizeInBytes}字节, 偏移: {entry.ImageOffset}");
-            
+
             // 当实际尺寸与头部信息不一致时，显示提示
             if (actualWidth != headerWidth || actualHeight != headerHeight) {
                 Console.WriteLine($"  注意: 文件头中指定的尺寸为{headerWidth}x{headerHeight}，但实际图像尺寸为{actualWidth}x{actualHeight}");

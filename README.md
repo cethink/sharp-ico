@@ -23,6 +23,12 @@ SharpIco是一个纯 C# AOT 实现的轻量级图标生成工具，用于生成�
 
 ## 📦 安装
 
+### 作为 .NET Global Tool 安装
+
+```bash
+dotnet tool install --global SharpIco
+```
+
 ### 从源码构建
 
 ```bash
@@ -42,17 +48,21 @@ dotnet publish -c Release -r win-x64 --self-contained
 ### 生成ICO图标
 
 ```bash
-# 使用默认尺寸(16,32,48,64,128,256,512,1024)
-SharpIco generate -i input.png -o output.ico
-
-# 指定自定义尺寸
-SharpIco generate -i input.png -o output.ico -s 16,32,64,128
+sharpico generate -i input.png -o output.ico
 ```
 
-### 检查ICO文件
+可选参数:
+- `-s, --sizes`: 指定图标尺寸，默认为 16,32,48,64,128,256,512,1024
+  
+示例:
+```bash
+sharpico generate -i input.png -o output.ico -s 16,32,64,128
+```
+
+### 检查ICO文件结构
 
 ```bash
-SharpIco inspect icon.ico
+sharpico inspect icon.ico
 ```
 
 ## 📋 参数说明
@@ -115,3 +125,31 @@ SharpIco使用以下技术：
 ## 📄 许可证
 
 MIT License
+
+## 开发者指南
+
+### 构建项目
+
+```bash
+dotnet build
+```
+
+### 打包为 NuGet 包
+
+```bash
+dotnet pack
+```
+
+生成的包将位于 `./SharpIco/nupkg` 目录中。
+
+### 本地安装 (开发测试)
+
+```bash
+dotnet tool install --global --add-source ./SharpIco/nupkg SharpIco
+```
+
+### 卸载工具
+
+```bash
+dotnet tool uninstall --global SharpIco
+```
