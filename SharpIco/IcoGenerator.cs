@@ -24,8 +24,7 @@ public static class IcoGenerator {
         foreach (var size in sizes) {
             using var clone = original.Clone(ctx => ctx.Resize(size, size));
             using var ms = new MemoryStream();
-            clone.SaveAsPng(ms, new PngEncoder
-            {
+            clone.SaveAsPng(ms, new PngEncoder {
                 ColorType = PngColorType.RgbWithAlpha
             });
             images.Add(ms.ToArray());
@@ -40,7 +39,7 @@ public static class IcoGenerator {
         writer.Write((ushort)images.Count); // number of images
 
         var offset = 6 + (16 * images.Count);
-        
+
         // ICONDIRENTRY (16 字节 × 图像数)
         foreach (var image in images) {
             using var ms = new MemoryStream(image);
