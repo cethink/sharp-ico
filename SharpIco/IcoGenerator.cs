@@ -2,6 +2,7 @@
 using System.IO;
 using System.Collections.Generic;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -23,9 +24,10 @@ public static class IcoGenerator {
         foreach (var size in sizes) {
             using var clone = original.Clone(ctx => ctx.Resize(size, size));
             using var ms = new MemoryStream();
-            // 强制图像为 Rgba32 格式，确保是 32-bit
-            var rgbaImage = clone.CloneAs<Rgba32>();
-            rgbaImage.SaveAsPng(ms);
+            clone.SaveAsPng(ms, new PngEncoder
+            {
+                ColorType = PngColorType.RgbWithAlpha
+            });
             images.Add(ms.ToArray());
         }
 
