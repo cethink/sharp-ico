@@ -32,7 +32,7 @@ SharpIco是一个纯 C# AOT 实现的轻量级图标生成工具，用于生成�
 
 ```bash
 # 添加自定义 bucket
-scoop bucket add sharp-ico https://github.com/star-plan/sharp-ico-bucket
+scoop bucket add sharp-ico https://github.com/star-plan/sharp-ico
 
 # 安装 SharpIco
 scoop install sharp-ico
