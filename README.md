@@ -61,13 +61,20 @@ sharpico generate -i input.png -o output.ico
 ```
 
 可选参数:
-- `-s, --sizes`: 指定图标尺寸，默认为 16,32,48,64,128,256,512,1024
+- `-s, --sizes`: 指定图标尺寸，支持逗号、分号或空格分隔；默认为 16,32,48,64,128,256,512
   
 
 示例:
 ```bash
+# 逗号分隔
 sharpico generate -i input.png -o output.ico -s 16,32,64,128
+# 空格分隔（等价）
+sharpico generate -i input.png -o output.ico -s 16 32 64 128
+# 分号分隔（PowerShell 中需使用引号）
+sharpico generate -i input.png -o output.ico -s "16;32;64;128"
 ```
+
+提示：在 Windows PowerShell 中，分号为命令分隔符。如果使用分号作为尺寸分隔符，请将整组数值用引号括起来，如 `-s "16;32;64;128"`。
 
 ### 检查ICO文件结构
 
