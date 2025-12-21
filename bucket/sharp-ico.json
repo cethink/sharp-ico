@@ -1,21 +1,21 @@
 {
-    "version": "1.1.1",
-    "description": "轻量级ICO图标生成和检查工具",
-    "homepage": "https://github.com/star-plan/sharp-ico",
-    "license": "MIT",
-    "architecture": {
-        "64bit": {
-            "url": "https://github.com/star-plan/sharp-ico/releases/download/v1.1.1/SharpIco-windows-1.1.1.zip",
-            "hash": "9c7ad8a54802e79a0309abc75d37efef6c6a6fbf1bbd10605b21abb4a628227d"
-        }
-    },
-    "bin": "sharpico.exe",
-    "checkver": "github",
-    "autoupdate": {
-        "architecture": {
-            "64bit": {
-                "url": "https://github.com/star-plan/sharp-ico/releases/download/v$version/SharpIco-windows-$version.zip"
-            }
-        }
+  "version": "1.2.0",
+  "description": "轻量级ICO图标生成和检查工具",
+  "homepage": "https://github.com/star-plan/sharp-ico",
+  "license": "MIT",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/star-plan/sharp-ico/releases/download/v1.2.0/SharpIco-windows-1.2.0.zip",
+      "hash": "994b22f84db02cf485b67bbc122c226015da7383a54ecb14cc485c4180b0cb80"
     }
-} 
+  },
+  "bin": "sharpico.exe",
+  "checkver": "github",
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/star-plan/sharp-ico/releases/download/v$version/SharpIco-windows-$version.zip"
+      }
+    }
+  }
+}
