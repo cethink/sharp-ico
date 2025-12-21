@@ -189,3 +189,69 @@ jobs:
           draft: false
           name: SharpIco 版本 ${{ steps.get_version.outputs.VERSION }}
           generate_release_notes: true 
+
+  # 第四步：更新Scoop manifest
+  update-scoop:
+    needs: upload-to-release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: master
+          
+      - name: 提取版本号
+        id: get_version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: 下载Windows构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: SharpIco-windows-${{ steps.get_version.outputs.VERSION }}
+          path: ./artifacts
+
+      - name: 计算Hash并更新manifest
+        shell: pwsh
+        run: |
+          $version = "${{ steps.get_version.outputs.VERSION }}"
+          $zipPath = "./artifacts/SharpIco-windows-$version.zip"
+          
+          if (-not (Test-Path $zipPath)) {
+            Write-Error "File not found: $zipPath"
+            exit 1
+          }
+          
+          $hash = (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLower()
+          Write-Host "Calculated Hash: $hash"
+          
+          $manifestPath = "./bucket/sharp-ico.json"
+          $jsonContent = Get-Content $manifestPath -Raw | ConvertFrom-Json
+          
+          # 更新版本号
+          $jsonContent.version = $version
+          
+          # 更新URL
+          $jsonContent.architecture.'64bit'.url = "https://github.com/star-plan/sharp-ico/releases/download/v$version/SharpIco-windows-$version.zip"
+          
+          # 更新Hash
+          $jsonContent.architecture.'64bit'.hash = $hash
+          
+          # 保存文件 (保持格式)
+          $jsonContent | ConvertTo-Json -Depth 4 | Set-Content $manifestPath
+          
+          # 显示更新后的内容以供调试
+          Get-Content $manifestPath
+
+      - name: 提交并推送更改
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add bucket/sharp-ico.json
+          # 只有当有更改时才提交
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update scoop manifest for version ${{ steps.get_version.outputs.VERSION }}"
+            git push origin master
+          fi

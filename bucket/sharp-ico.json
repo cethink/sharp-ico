@@ -6,7 +6,7 @@
     "architecture": {
         "64bit": {
             "url": "https://github.com/star-plan/sharp-ico/releases/download/v1.1.1/SharpIco-windows-1.1.1.zip",
-            "hash": "请在发布后替换为实际的SHA256哈希值"
+            "hash": "9c7ad8a54802e79a0309abc75d37efef6c6a6fbf1bbd10605b21abb4a628227d"
         }
     },
     "bin": "sharpico.exe",
@@ -14,7 +14,7 @@
     "autoupdate": {
         "architecture": {
             "64bit": {
-                "url": "https://github.com/star-plan/sharp-ico/releases/download/v$version/sharpico-win-x64.zip"
+                "url": "https://github.com/star-plan/sharp-ico/releases/download/v$version/SharpIco-windows-$version.zip"
             }
         }
     }
